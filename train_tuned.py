@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 import random
 import logging
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from PreResNet import *
 from sklearn.mixture import GaussianMixture
 import dataloader_tuned as dataloader
@@ -184,12 +184,13 @@ def eval_train(model,all_loss):
     losses = (losses-losses.min())/(losses.max()-losses.min())    
     all_loss.append(losses)
 
-    if args.r==0.9: # average loss over last 5 epochs to improve convergence stability
-        history = torch.stack(all_loss)
-        input_loss = history[-5:].mean(0)
-        input_loss = input_loss.reshape(-1,1)
-    else:
-        input_loss = losses.reshape(-1,1)
+    # if args.r==0.9: # average loss over last 5 epochs to improve convergence stability
+    #     history = torch.stack(all_loss)
+    #     input_loss = history[-5:].mean(0)
+    #     input_loss = input_loss.reshape(-1,1)
+    # else:
+    #     input_loss = losses.reshape(-1,1)
+    input_loss = losses.reshape(-1,1)
     
     # fit a two-component GMM to the loss
     gmm = GaussianMixture(n_components=2,max_iter=10,tol=1e-2,reg_covar=5e-4)
