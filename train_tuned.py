@@ -261,6 +261,7 @@ loader = dataloader.dataloader_tuned(
 )
 
 print('| Building net')
+logging.info('| Building net')
 net1 = create_model()
 net2 = create_model()
 cudnn.benchmark = True
