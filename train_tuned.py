@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 import random
 import logging
-from tqdm.auto import tqdm
+from tqdm import tqdm
 from PreResNet import *
 from sklearn.mixture import GaussianMixture
 import dataloader_tuned as dataloader
