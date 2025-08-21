@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 import random
 import logging
-from tqdm.auto import tqdm
+from tqdm import tqdm
 from PreResNet import *
 from sklearn.mixture import GaussianMixture
 import dataloader_tuned as dataloader
@@ -173,14 +173,21 @@ def predict_testset(net1, net2, test_loader):
     net1.eval()
     net2.eval()
     all_preds = []
+    correct = 0
+    total = 0
     with torch.no_grad():
-        for inputs, _ in tqdm(test_loader, desc="Predict Testset"):
-            inputs = inputs.cuda()
+        for inputs, targets in tqdm(test_loader, desc="Predict Testset"):
+            inputs, targets = inputs.cuda(), targets.cuda()
             outputs1 = net1(inputs)
             outputs2 = net2(inputs)
             outputs = outputs1 + outputs2
             _, predicted = torch.max(outputs, 1)
             all_preds.append(predicted.cpu().numpy())
+            total += targets.size(0)
+            correct += predicted.eq(targets).cpu().sum().item()
+    acc = 100.*correct/total if total > 0 else 0.0
+    print(f"\n| Predict Testset\t Accuracy: {acc:.2f}%\n")
+    logging.info(f"Predict Testset Accuracy: {acc:.2f}%")
     return np.concatenate(all_preds)
 
 def eval_train(model,all_loss):    
