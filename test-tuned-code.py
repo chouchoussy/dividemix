@@ -22,7 +22,7 @@ args = {
     'test_data_column': 'image_name',   # Sửa lại đúng tên cột dữ liệu ảnh trong csv
     'test_label_column': 'label',       # Sửa lại đúng tên cột label trong csv
     'test_image_dir': './Data/fashion-mnist-2k5-testset/images',
-    'num_workers': 4
+    'num_workers': 8
 }
 
 # Bật/tắt chạy tập clean

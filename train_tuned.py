@@ -140,17 +140,26 @@ def train(epoch,net,net2,optimizer,labeled_trainloader,unlabeled_trainloader):
 def warmup(epoch, net, optimizer, dataloader):
     net.train()
     num_iter = (len(dataloader.dataset)//dataloader.batch_size)+1
+    # for batch_idx, (inputs, labels, path) in enumerate(tqdm(dataloader, desc=f"Warmup Epoch {epoch}")):
+    #     inputs, labels = inputs.cuda(), labels.cuda()
+    #     optimizer.zero_grad()
+    #     outputs = net(inputs)
+    #     loss = CEloss(outputs, labels)
+    #     penalty = conf_penalty(outputs)
+    #     L = loss + penalty
+    #     L.backward()
+    #     optimizer.step()
+    #     print(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}, penalty={penalty.item():.4f}")
+    #     logging.info(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}, penalty={penalty.item():.4f}")
     for batch_idx, (inputs, labels, path) in enumerate(tqdm(dataloader, desc=f"Warmup Epoch {epoch}")):
         inputs, labels = inputs.cuda(), labels.cuda()
         optimizer.zero_grad()
         outputs = net(inputs)
         loss = CEloss(outputs, labels)
-        penalty = conf_penalty(outputs)
-        L = loss + penalty
-        L.backward()
+        loss.backward()
         optimizer.step()
-        print(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}, penalty={penalty.item():.4f}")
-        logging.info(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}, penalty={penalty.item():.4f}")
+        print(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}")
+        logging.info(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}")
 
 def test(epoch,net1,net2):
     net1.eval()
