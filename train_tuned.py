@@ -134,6 +134,7 @@ def train(epoch,net,net2,optimizer,labeled_trainloader,unlabeled_trainloader):
         loss.backward()
         optimizer.step()
         print(f"{epoch=}, {batch_idx=}, Lx={Lx.item():.2f}, Lu={Lu.item():.2f}")
+        logging.info(f"Train {epoch=}, {batch_idx=}, Lx={Lx.item():.2f}, Lu={Lu.item():.2f}")
 
 
 def warmup(epoch, net, optimizer, dataloader):
@@ -149,6 +150,7 @@ def warmup(epoch, net, optimizer, dataloader):
         L.backward()
         optimizer.step()
         print(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}, penalty={penalty.item():.4f}")
+        logging.info(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}, penalty={penalty.item():.4f}")
 
 def test(epoch,net1,net2):
     net1.eval()
@@ -287,8 +289,10 @@ for epoch in tqdm(range(args.num_epochs+1), desc="Epochs"):
     if epoch < args.warm_up:
         warmup_trainloader = loader.run('warmup')
         print('Warmup Net1')
+        logging.info('Warmup Net1')
         warmup(epoch, net1, optimizer1, warmup_trainloader)
         print('Warmup Net2')
+        logging.info('Warmup Net2')
         warmup(epoch, net2, optimizer2, warmup_trainloader)
     else:
         prob1, all_loss[0] = eval_train(net1, all_loss[0])
@@ -296,9 +300,11 @@ for epoch in tqdm(range(args.num_epochs+1), desc="Epochs"):
         pred1 = (prob1 > args.p_threshold)
         pred2 = (prob2 > args.p_threshold)
         print('Train Net1')
+        logging.info('Train Net1')
         labeled_trainloader, unlabeled_trainloader = loader.run('train', pred2, prob2)
         train(epoch, net1, net2, optimizer1, labeled_trainloader, unlabeled_trainloader)
         print('Train Net2')
+        logging.info('Train Net2')
         labeled_trainloader, unlabeled_trainloader = loader.run('train', pred1, prob1)
         train(epoch, net2, net1, optimizer2, labeled_trainloader, unlabeled_trainloader)
     test(epoch, net1, net2)
