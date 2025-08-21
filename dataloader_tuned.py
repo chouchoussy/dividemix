@@ -41,7 +41,7 @@ class BaseImageDataset(Dataset):
         img = Image.open(img_path).convert('RGB')
         img = self.transform(img)
         label = int(row[self.label_column])
-        return img, label, idx
+        return img, label
 
 class dataset_tuned(Dataset):
     def __init__(self, mode, train_csv_path=None, train_feather_path=None, train_data_column=None, train_label_column=None, train_image_dir=None,
