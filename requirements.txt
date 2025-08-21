@@ -1,0 +1,9 @@
+# requirements.txt
+tqdm
+pandas
+torch
+torchvision
+numpy
+scikit-learn
+Pillow
+torchnet
