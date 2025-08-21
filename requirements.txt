@@ -1,6 +1,7 @@
 # requirements.txt
 tqdm
 pandas
+pyarrow
 torch
 torchvision
 numpy
