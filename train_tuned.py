@@ -169,6 +169,20 @@ def test(epoch,net1,net2):
     print("\n| Test Epoch #%d\t Accuracy: %.2f%%\n" %(epoch,acc)) 
     logging.info(f"Test Epoch {epoch} Accuracy: {acc:.2f}%")
 
+def predict_testset(net1, net2, test_loader):
+    net1.eval()
+    net2.eval()
+    all_preds = []
+    with torch.no_grad():
+        for inputs, _ in tqdm(test_loader, desc="Predict Testset"):
+            inputs = inputs.cuda()
+            outputs1 = net1(inputs)
+            outputs2 = net2(inputs)
+            outputs = outputs1 + outputs2
+            _, predicted = torch.max(outputs, 1)
+            all_preds.append(predicted.cpu().numpy())
+    return np.concatenate(all_preds)
+
 def eval_train(model,all_loss):    
     model.eval()
     # Generalize losses size to match dataset
@@ -253,7 +267,7 @@ conf_penalty = NegEntropy()
 
 all_loss = [[],[]]
 
-for epoch in range(args.num_epochs+1):
+for epoch in tqdm(range(args.num_epochs+1), desc="Epochs"):
     lr=args.lr
     if epoch >= 150:
         lr /= 10
@@ -281,3 +295,7 @@ for epoch in range(args.num_epochs+1):
         labeled_trainloader, unlabeled_trainloader = loader.run('train', pred1, prob1)
         train(epoch, net2, net1, optimizer2, labeled_trainloader, unlabeled_trainloader)
     test(epoch, net1, net2)
+    # Save test predictions at last epoch
+    if epoch == args.num_epochs:
+        preds = predict_testset(net1, net2, test_loader)
+        np.save('test_predictions.npy', preds)
