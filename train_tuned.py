@@ -62,7 +62,8 @@ def train(epoch,net,net2,optimizer,labeled_trainloader,unlabeled_trainloader):
     
     unlabeled_train_iter = iter(unlabeled_trainloader)    
     num_iter = (len(labeled_trainloader.dataset)//args.batch_size)+1
-    for batch_idx, (inputs_x, inputs_x2, labels_x, w_x) in enumerate(tqdm(labeled_trainloader, desc=f"Train Epoch {epoch}")):
+    # for batch_idx, (inputs_x, inputs_x2, labels_x, w_x) in enumerate(tqdm(labeled_trainloader, desc=f"Train Epoch {epoch}")):
+    for batch_idx, (inputs_x, inputs_x2, labels_x, w_x) in enumerate(labeled_trainloader):
         try:
             inputs_u, inputs_u2 = next(unlabeled_train_iter)
         except:
@@ -140,7 +141,8 @@ def train(epoch,net,net2,optimizer,labeled_trainloader,unlabeled_trainloader):
 def warmup(epoch, net, optimizer, dataloader):
     net.train()
     num_iter = (len(dataloader.dataset)//dataloader.batch_size)+1
-    for batch_idx, (inputs, labels, path) in enumerate(tqdm(dataloader, desc=f"Warmup Epoch {epoch}")):
+    # for batch_idx, (inputs, labels, path) in enumerate(tqdm(dataloader, desc=f"Warmup Epoch {epoch}")):
+    for batch_idx, (inputs, labels, path) in enumerate(dataloader):
         inputs, labels = inputs.cuda(), labels.cuda()
         optimizer.zero_grad()
         outputs = net(inputs)
@@ -167,7 +169,8 @@ def test(epoch,net1,net2):
     correct = 0
     total = 0
     with torch.no_grad():
-        for batch_idx, (inputs, targets) in enumerate(tqdm(test_loader, desc=f"Test Epoch {epoch}")):
+        # for batch_idx, (inputs, targets) in enumerate(tqdm(test_loader, desc=f"Test Epoch {epoch}")):
+        for batch_idx, (inputs, targets) in enumerate(test_loader):
             inputs, targets = inputs.cuda(), targets.cuda()
             outputs1 = net1(inputs)
             outputs2 = net2(inputs)           
@@ -187,7 +190,8 @@ def predict_testset(net1, net2, test_loader):
     correct = 0
     total = 0
     with torch.no_grad():
-        for inputs, targets in tqdm(test_loader, desc="Predict Testset"):
+        # for inputs, targets in tqdm(test_loader, desc="Predict Testset"):
+        for inputs, targets in test_loader:
             inputs, targets = inputs.cuda(), targets.cuda()
             outputs1 = net1(inputs)
             outputs2 = net2(inputs)
@@ -207,7 +211,8 @@ def eval_train(model,all_loss):
     dataset_size = len(eval_loader.dataset)
     losses = torch.zeros(dataset_size)
     with torch.no_grad():
-        for batch_idx, (inputs, targets, index) in enumerate(tqdm(eval_loader, desc="Eval Train")):
+        # for batch_idx, (inputs, targets, index) in enumerate(tqdm(eval_loader, desc="Eval Train")):
+        for batch_idx, (inputs, targets, index) in enumerate(eval_loader):
             inputs, targets = inputs.cuda(), targets.cuda() 
             outputs = model(inputs) 
             loss = CE(outputs, targets)  
