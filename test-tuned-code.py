@@ -12,7 +12,7 @@ args = {
     'gpuid': 0,
     'num_class': 10,
     'image_size': 28,
-    'warm_up': 30,
+    'warm_up': 10,
     'train_csv_path': './Data/Fashion-MNIST-test/fashion_mnist.csv',
     'train_feather_path': './Data/Fashion-MNIST-test/fashion-mnist-test-clip-b16-noise/fashion-mnist-test_LLM.feather',
     'train_data_column': 'image_name',  # Sửa lại đúng tên cột dữ liệu ảnh trong csv
