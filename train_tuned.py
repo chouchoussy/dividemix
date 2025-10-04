@@ -12,6 +12,7 @@ from tqdm import tqdm
 from PreResNet import *
 from sklearn.mixture import GaussianMixture
 from sklearn.metrics import accuracy_score, f1_score, classification_report
+from pprint import pprint
 import dataloader_tuned as dataloader
 
 # ===== [A] START TIMER =====
@@ -46,6 +47,8 @@ parser.add_argument('--test_label_column', type=str, required=True)
 parser.add_argument('--test_image_dir', type=str)
 parser.add_argument('--num_workers', default=4, type=int)
 args = parser.parse_args()
+
+pprint(vars(args))
 
 # Conditional requirements for image data
 if args.data_type.lower() == 'image':
