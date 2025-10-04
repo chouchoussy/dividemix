@@ -29,7 +29,7 @@ parser.add_argument('--id', default='')
 parser.add_argument('--seed', default=123)
 parser.add_argument('--gpuid', default=0, type=int)
 parser.add_argument('--num_class', default=10, type=int)
-parser.add_argument('--image_size', default=224, type=int, help='image size for resize/crop')
+parser.add_argument('--image_size', default=28, type=int, help='image size for resize/crop')
 parser.add_argument('--warm_up', default=10, type=int, help='number of warmup epochs')
 # Dataset paths and columns
 parser.add_argument('--dataset', default='fashion-mnist', type=str)

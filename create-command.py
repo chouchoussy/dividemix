@@ -20,7 +20,7 @@ config = {
     "noise_type": "llm",
     "data_type": "image",
     "num_class": 10,
-    "image_size": 224,
+    "image_size": 28,
 
     # ----- Train set -----
     "train_csv_path": "Data/Fashion-MNIST-test/fashion_mnist.csv",
