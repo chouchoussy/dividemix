@@ -138,7 +138,7 @@ def train(epoch,net,net2,optimizer,labeled_trainloader,unlabeled_trainloader):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print(f"{epoch=}, {batch_idx=}, Lx={Lx.item():.2f}, Lu={Lu.item():.2f}")
+        # print(f"{epoch=}, {batch_idx=}, Lx={Lx.item():.2f}, Lu={Lu.item():.2f}")
 
 def warmup(epoch, net, optimizer, dataloader):
     net.train()
@@ -157,7 +157,7 @@ def warmup(epoch, net, optimizer, dataloader):
         L = loss
         L.backward()
         optimizer.step()
-        print(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}")
+        # print(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}")
 
 def test(epoch,net1,net2):
     net1.eval()
