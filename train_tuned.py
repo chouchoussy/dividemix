@@ -1,27 +1,21 @@
 from __future__ import print_function
 import argparse
 import numpy as np
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 import random
-import logging
 from tqdm import tqdm
 from PreResNet import *
 from sklearn.mixture import GaussianMixture
+from sklearn.metrics import accuracy_score, f1_score, classification_report
 import dataloader_tuned as dataloader
 
-# --- CẤU HÌNH LOGGING ---
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] - %(message)s',
-    handlers=[
-        logging.FileHandler("training.log", mode='w'),
-        logging.StreamHandler()
-    ]
-)
+# ===== [A] START TIMER =====
+start_wall = time.time()
 
 parser = argparse.ArgumentParser(description='PyTorch General Training')
 parser.add_argument('--batch_size', default=64, type=int, help='train batchsize')
@@ -38,17 +32,27 @@ parser.add_argument('--num_class', default=10, type=int)
 parser.add_argument('--image_size', default=224, type=int, help='image size for resize/crop')
 parser.add_argument('--warm_up', default=10, type=int, help='number of warmup epochs')
 # Dataset paths and columns
+parser.add_argument('--dataset', default='fashion-mnist', type=str)
+parser.add_argument('--noise_type', default='llm', type=str)
+parser.add_argument('--data_type', default='image', type=str)
 parser.add_argument('--train_csv_path', type=str, required=True)
 parser.add_argument('--train_feather_path', type=str, required=True)
 parser.add_argument('--train_data_column', type=str, required=True)
 parser.add_argument('--train_label_column', type=str, required=True)
-parser.add_argument('--train_image_dir', type=str, required=True)
+parser.add_argument('--train_image_dir', type=str)
 parser.add_argument('--test_csv_path', type=str, required=True)
 parser.add_argument('--test_data_column', type=str, required=True)
 parser.add_argument('--test_label_column', type=str, required=True)
-parser.add_argument('--test_image_dir', type=str, required=True)
+parser.add_argument('--test_image_dir', type=str)
 parser.add_argument('--num_workers', default=4, type=int)
 args = parser.parse_args()
+
+# Conditional requirements for image data
+if args.data_type.lower() == 'image':
+    if not args.train_image_dir:
+        parser.error("--train_image_dir is required when --data_type=image")
+    if not args.test_image_dir:
+        parser.error("--test_image_dir is required when --data_type=image")
 
 torch.cuda.set_device(args.gpuid)
 random.seed(args.seed)
@@ -135,8 +139,6 @@ def train(epoch,net,net2,optimizer,labeled_trainloader,unlabeled_trainloader):
         loss.backward()
         optimizer.step()
         print(f"{epoch=}, {batch_idx=}, Lx={Lx.item():.2f}, Lu={Lu.item():.2f}")
-        logging.info(f"Train {epoch=}, {batch_idx=}, Lx={Lx.item():.2f}, Lu={Lu.item():.2f}")
-
 
 def warmup(epoch, net, optimizer, dataloader):
     net.train()
@@ -147,21 +149,15 @@ def warmup(epoch, net, optimizer, dataloader):
         optimizer.zero_grad()
         outputs = net(inputs)
         loss = CEloss(outputs, labels)
-        penalty = conf_penalty(outputs)
-        L = loss + penalty
+        # if args.noise_mode=='asym':  # penalize confident prediction for asymmetric noise
+        #     penalty = conf_penalty(outputs)
+        #     L = loss + penalty      
+        # elif args.noise_mode=='sym':   
+        #     L = loss
+        L = loss
         L.backward()
         optimizer.step()
-        print(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}, penalty={penalty.item():.4f}")
-        logging.info(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}, penalty={penalty.item():.4f}")
-    # for batch_idx, (inputs, labels, path) in enumerate(tqdm(dataloader, desc=f"Warmup Epoch {epoch}")):
-    #     inputs, labels = inputs.cuda(), labels.cuda()
-    #     optimizer.zero_grad()
-    #     outputs = net(inputs)
-    #     loss = CEloss(outputs, labels)
-    #     loss.backward()
-    #     optimizer.step()
-    #     print(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}")
-    #     logging.info(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}")
+        print(f"Warmup {epoch=}, {batch_idx=}, loss={loss.item():.4f}")
 
 def test(epoch,net1,net2):
     net1.eval()
@@ -180,30 +176,44 @@ def test(epoch,net1,net2):
             total += targets.size(0)
             correct += predicted.eq(targets).cpu().sum().item()                 
     acc = 100.*correct/total
-    print("\n| Test Epoch #%d\t Accuracy: %.2f%%\n" %(epoch,acc)) 
-    logging.info(f"Test Epoch {epoch} Accuracy: {acc:.2f}%")
+    print("\n| Test Epoch #%d\t Accuracy: %.2f%%\n" %(epoch,acc))
 
 def predict_testset(net1, net2, test_loader):
     net1.eval()
     net2.eval()
     all_preds = []
-    correct = 0
-    total = 0
+    all_targets = []
     with torch.no_grad():
         # for inputs, targets in tqdm(test_loader, desc="Predict Testset"):
         for inputs, targets in test_loader:
-            inputs, targets = inputs.cuda(), targets.cuda()
+            inputs = inputs.cuda(non_blocking=True)
+            targets = targets.cuda(non_blocking=True)
             outputs1 = net1(inputs)
             outputs2 = net2(inputs)
             outputs = outputs1 + outputs2
-            _, predicted = torch.max(outputs, 1)
-            all_preds.append(predicted.cpu().numpy())
-            total += targets.size(0)
-            correct += predicted.eq(targets).cpu().sum().item()
-    acc = 100.*correct/total if total > 0 else 0.0
-    print(f"\n| Predict Testset\t Accuracy: {acc:.2f}%\n")
-    logging.info(f"Predict Testset Accuracy: {acc:.2f}%")
-    return np.concatenate(all_preds)
+            predicted = outputs.argmax(dim=1)
+            all_preds.append(predicted.detach().cpu().numpy())
+            all_targets.append(targets.detach().cpu().numpy())
+
+    if all_targets:
+        y_pred = np.concatenate(all_preds)
+        y_true = np.concatenate(all_targets)
+
+        acc = accuracy_score(y_true, y_pred)
+        f1_macro = f1_score(y_true, y_pred, average="macro", zero_division=0)
+        f1_weighted = f1_score(y_true, y_pred, average="weighted", zero_division=0)
+
+        print(f"Accuracy: {(acc * 100):.2f}%")
+        print(f"F1-macro: {(f1_macro * 100):.2f}%")
+        print(f"F1-weighted: {(f1_weighted * 100):.2f}%")
+        print("\nClassification report:")
+        print(classification_report(y_true, y_pred, digits=4, zero_division=0))
+
+        return y_pred
+    else:
+        print("Accuracy: 0.00%\nF1-macro: 0.00%\nF1-weighted: 0.00%\n\nClassification report:\n(none)")
+        return np.array([], dtype=np.int64)
+
 
 def eval_train(model,all_loss):    
     model.eval()
@@ -275,7 +285,6 @@ loader = dataloader.dataloader_tuned(
 )
 
 print('| Building net')
-logging.info('| Building net')
 net1 = create_model()
 net2 = create_model()
 cudnn.benchmark = True
@@ -304,10 +313,8 @@ for epoch in tqdm(range(args.num_epochs+1), desc="Epochs"):
     if epoch < args.warm_up:
         warmup_trainloader = loader.run('warmup')
         print('Warmup Net1')
-        logging.info('Warmup Net1')
         warmup(epoch, net1, optimizer1, warmup_trainloader)
         print('Warmup Net2')
-        logging.info('Warmup Net2')
         warmup(epoch, net2, optimizer2, warmup_trainloader)
     else:
         prob1, all_loss[0] = eval_train(net1, all_loss[0])
@@ -315,15 +322,19 @@ for epoch in tqdm(range(args.num_epochs+1), desc="Epochs"):
         pred1 = (prob1 > args.p_threshold)
         pred2 = (prob2 > args.p_threshold)
         print('Train Net1')
-        logging.info('Train Net1')
         labeled_trainloader, unlabeled_trainloader = loader.run('train', pred2, prob2)
         train(epoch, net1, net2, optimizer1, labeled_trainloader, unlabeled_trainloader)
         print('Train Net2')
-        logging.info('Train Net2')
         labeled_trainloader, unlabeled_trainloader = loader.run('train', pred1, prob1)
         train(epoch, net2, net1, optimizer2, labeled_trainloader, unlabeled_trainloader)
     test(epoch, net1, net2)
     # Save test predictions at last epoch
     if epoch == args.num_epochs:
         preds = predict_testset(net1, net2, test_loader)
-        np.save('test_predictions.npy', preds)
+        out_name = f"{args.dataset}_{args.noise_type}_test-predictions.npy"
+        np.save(out_name, preds)
+
+# ===== [B] AFTER TRAIN =====
+end_wall = time.time()
+wall_sec = end_wall - start_wall
+print(f"[TIME] Total wall time: {wall_sec:.2f}s ({wall_sec/3600:.4f}h)")
