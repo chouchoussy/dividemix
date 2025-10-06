@@ -180,7 +180,8 @@ class dataloader_tuned_mlp:
                 dataset, 
                 batch_size=self.batch_size*2, 
                 shuffle=True, 
-                num_workers=self.num_workers
+                num_workers=self.num_workers,
+                drop_last=True  # Drop last incomplete batch to avoid BatchNorm issues
             )
             return loader
         
@@ -198,7 +199,8 @@ class dataloader_tuned_mlp:
                 labeled_dataset, 
                 batch_size=self.batch_size, 
                 shuffle=True, 
-                num_workers=self.num_workers
+                num_workers=self.num_workers,
+                drop_last=True  # Drop last incomplete batch to avoid BatchNorm issues
             )
             
             unlabeled_dataset = dataset_tuned_mlp(
@@ -213,7 +215,8 @@ class dataloader_tuned_mlp:
                 unlabeled_dataset, 
                 batch_size=self.batch_size, 
                 shuffle=True, 
-                num_workers=self.num_workers
+                num_workers=self.num_workers,
+                drop_last=True  # Drop last incomplete batch to avoid BatchNorm issues
             )
             return labeled_loader, unlabeled_loader
         
@@ -244,7 +247,8 @@ class dataloader_tuned_mlp:
                 eval_dataset, 
                 batch_size=self.batch_size, 
                 shuffle=False, 
-                num_workers=self.num_workers
+                num_workers=self.num_workers,
+                drop_last=False  # Keep all samples for evaluation
             )
             return eval_loader
         
