@@ -18,10 +18,10 @@ NOISE_TYPE = "LLM"  # Có thể đổi: llm, semi_supervise, clf, auto, weak_sup
 
 # Hyperparameters (có thể điều chỉnh)
 BATCH_SIZE = 64
-LEARNING_RATE = 0.20
+LEARNING_RATE = 0.02
 NUM_EPOCHS = 300
 WARM_UP = 10
-NUM_WORKERS = 8
+NUM_WORKERS = 0  # Set to 0 for macOS to avoid multiprocessing issues (or try 2-4)
 GPU_ID = 0
 
 # ============================================================================
@@ -143,4 +143,7 @@ def main():
 
 
 if __name__ == "__main__":
+    # Important for macOS multiprocessing
+    import multiprocessing
+    multiprocessing.set_start_method('spawn', force=True)
     main()

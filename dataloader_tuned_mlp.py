@@ -12,7 +12,11 @@ class BaseEmbeddingDataset(Dataset):
     """Dataset for test set with embeddings"""
     def __init__(self, csv_path, embedding_feather_path, label_column):
         self.df = pd.read_csv(csv_path)
-        self.embeddings = pd.read_feather(embedding_feather_path).values
+        emb_df = pd.read_feather(embedding_feather_path)
+        # Remove non-embedding columns (index, label, etc.)
+        non_emb_cols = [col for col in emb_df.columns if col in ['index', 'label', 'Unnamed: 0']]
+        emb_cols = [col for col in emb_df.columns if col not in non_emb_cols]
+        self.embeddings = emb_df[emb_cols].values
         self.label_column = label_column
         
         # Verify dimensions match
@@ -67,7 +71,11 @@ class dataset_tuned_mlp(Dataset):
         else:
             # Training modes: load train embeddings, true labels, and noisy labels
             self.df = pd.read_csv(train_csv_path)
-            self.embeddings = pd.read_feather(train_embedding_feather_path).values
+            emb_df = pd.read_feather(train_embedding_feather_path)
+            # Remove non-embedding columns (index, label, etc.) - keep only numeric embedding columns
+            non_emb_cols = [col for col in emb_df.columns if col in ['index', 'label', 'Unnamed: 0']]
+            emb_cols = [col for col in emb_df.columns if col not in non_emb_cols]
+            self.embeddings = emb_df[emb_cols].values
             self.noise_label = pd.read_feather(train_noisy_label_feather_path)['label'].values
             self.label_column = train_label_column
             
